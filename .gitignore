@@ -1,0 +1,61 @@
+# ===========================================================
+#  HEALTH CARE MANAGEMENT SYSTEM — git ignore rules
+#  Keep secrets, dependencies, and build output OUT of git.
+# ===========================================================
+
+# ─── Secrets (CRITICAL — never commit) ─────────────────────
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+backend/.env.*.local
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# ─── Node dependencies ─────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ─── Build output ──────────────────────────────────────────
+dist/
+build/
+**/dist/
+**/build/
+.vite/
+**/.vite/
+
+# ─── Logs ──────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# ─── Editor / OS junk ──────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ─── Cursor / AI scratch ───────────────────────────────────
+.cursor/
+.history/
+
+# ─── Database dumps / local data ───────────────────────────
+*.sql.bak
+*.dump
+*.sqlite
+*.sqlite3
+
+# ─── Coverage / test output ────────────────────────────────
+coverage/
+.nyc_output/
