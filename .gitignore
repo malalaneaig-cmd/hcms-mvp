@@ -56,6 +56,11 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# ─── Personal trackers / scratch spreadsheets ──────────────
+*.xlsx
+*.xls
+*.ods
+
 # ─── Coverage / test output ────────────────────────────────
 coverage/
 .nyc_output/
