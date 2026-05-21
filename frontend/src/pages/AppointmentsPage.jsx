@@ -156,11 +156,13 @@ function BookModal({ open, onClose, onCreated }) {
     }
     setSaving(true);
     try {
-      const local = new Date(`${form.date}T${form.time}`);
+      // Send a naive local datetime (no Z / no UTC conversion).
+      // The clinic operates in one timezone; storing wall-clock time end-to-end avoids
+      // off-by-one bugs from TIMESTAMP-without-time-zone columns.
       await Appointments.create({
         patient_id:       Number(form.patient_id),
         doctor_id:        Number(form.doctor_id),
-        appointment_time: local.toISOString(),
+        appointment_time: `${form.date}T${form.time}:00`,
         channel:          form.channel,
       });
       onCreated?.();

@@ -49,14 +49,20 @@ async function run() {
   console.log(`  • inserted ${patients.length} patients`);
 
   // ─── A couple of demo appointments (tomorrow) ─────────
-  const tomorrow9  = new Date(); tomorrow9.setDate(tomorrow9.getDate() + 1); tomorrow9.setHours(9, 0, 0, 0);
-  const tomorrow10 = new Date(); tomorrow10.setDate(tomorrow10.getDate() + 1); tomorrow10.setHours(10, 30, 0, 0);
+  // Build naive ISO strings (no UTC conversion) so the time the user sees
+  // on screen matches what we intended here — see AppointmentsPage for the
+  // full explanation of why we avoid .toISOString() in this codebase.
+  const t = new Date(); t.setDate(t.getDate() + 1);
+  const pad = (n) => String(n).padStart(2, '0');
+  const date = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
+  const tomorrow9  = `${date}T09:00:00`;
+  const tomorrow10 = `${date}T10:30:00`;
 
   await pool.query(
     `INSERT INTO appointments (patient_id, doctor_id, appointment_time, status, channel)
      VALUES (1, 1, $1, 'booked', 'reception'),
             (2, 2, $2, 'booked', 'website')`,
-    [tomorrow9.toISOString(), tomorrow10.toISOString()]
+    [tomorrow9, tomorrow10]
   );
   console.log('  • inserted 2 demo appointments');
 

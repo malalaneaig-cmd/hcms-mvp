@@ -33,13 +33,13 @@ export default function PublicBookingPage() {
     }
     setLoading(true);
     try {
-      const local = new Date(`${form.date}T${form.time}`);
+      // Naive local datetime — see AppointmentsPage for the rationale.
       const res = await Appointments.publicBook({
         patient_name:     form.patient_name,
         patient_phone:    form.patient_phone,
         patient_email:    form.patient_email || null,
         doctor_id:        Number(form.doctor_id),
-        appointment_time: local.toISOString(),
+        appointment_time: `${form.date}T${form.time}:00`,
       });
       setSuccess(res);
     } catch (err) {
