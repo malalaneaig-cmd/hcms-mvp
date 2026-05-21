@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 
-const NAV = [
+const NAV_BASE = [
   { to: '/',             label: 'Dashboard',    icon: '📊' },
   { to: '/appointments', label: 'Appointments', icon: '📅' },
   { to: '/patients',     label: 'Patients',     icon: '🧑' },
@@ -9,9 +9,15 @@ const NAV = [
   { to: '/invoices',     label: 'Invoices',     icon: '💰' },
 ];
 
+const NAV_ADMIN = [
+  { to: '/staff', label: 'Staff', icon: '🔑' },
+];
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const nav = user?.role === 'admin' ? [...NAV_BASE, ...NAV_ADMIN] : NAV_BASE;
 
   function handleLogout() {
     logout();
@@ -33,7 +39,7 @@ export default function Layout() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}

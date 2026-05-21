@@ -24,6 +24,16 @@ export function requireAuth(req, res, next) {
   }
 }
 
+/**
+ * Must run AFTER requireAuth. Allows only users with role === 'admin'.
+ */
+export function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin role required for this action' });
+  }
+  return next();
+}
+
 export function signToken(payload, options = {}) {
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '12h',

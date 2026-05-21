@@ -9,6 +9,7 @@ import PatientDetailPage from './pages/PatientDetailPage.jsx';
 import AppointmentsPage from './pages/AppointmentsPage.jsx';
 import DoctorsPage      from './pages/DoctorsPage.jsx';
 import InvoicesPage     from './pages/InvoicesPage.jsx';
+import StaffPage        from './pages/StaffPage.jsx';
 import PublicBookingPage from './pages/PublicBookingPage.jsx';
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/patients/:id" element={<PatientDetailPage />} />
         <Route path="/doctors"      element={<DoctorsPage />} />
         <Route path="/invoices"     element={<InvoicesPage />} />
+        <Route path="/staff"        element={<StaffPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

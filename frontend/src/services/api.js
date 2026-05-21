@@ -30,6 +30,12 @@ export const Auth = {
   me:       ()                => api.get('/auth/me').then((r) => r.data),
 };
 
+// Admin-only — backend enforces role check
+export const Staff = {
+  list:   () => api.get('/auth/users').then((r) => r.data),
+  create: (data) => api.post('/auth/register', data).then((r) => r.data),
+};
+
 export const Patients = {
   list:   (search) => api.get('/patients', { params: { search } }).then((r) => r.data),
   get:    (id)     => api.get(`/patients/${id}`).then((r) => r.data),

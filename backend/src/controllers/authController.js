@@ -63,3 +63,16 @@ export async function me(req, res) {
   if (!rows[0]) throw new HttpError(404, 'User not found');
   res.json(rows[0]);
 }
+
+/**
+ * GET /api/auth/users  — admin-only listing of all staff users.
+ * Never includes password_hash.
+ */
+export async function listUsers(_req, res) {
+  const { rows } = await pool.query(
+    `SELECT id, email, full_name, role, created_at
+       FROM users
+       ORDER BY id ASC`
+  );
+  res.json(rows);
+}
