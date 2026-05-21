@@ -168,7 +168,16 @@ function BookModal({ open, onClose, onCreated }) {
       onCreated?.();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to book');
+      // Refresh the list regardless — if a network blip ate the response,
+      // the booking may have succeeded server-side and we want to show it.
+      onCreated?.();
+      if (!err.response) {
+        setError(
+          'Network hiccup — your booking may have been saved. Please close this dialog and check the list below before retrying.'
+        );
+      } else {
+        setError(err.response?.data?.error || 'Failed to book');
+      }
     } finally {
       setSaving(false);
     }

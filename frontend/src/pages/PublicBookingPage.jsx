@@ -43,7 +43,13 @@ export default function PublicBookingPage() {
       });
       setSuccess(res);
     } catch (err) {
-      setError(err.response?.data?.error || 'We could not book that slot. Please try another time.');
+      if (!err.response) {
+        setError(
+          'We could not reach the booking service. Your reservation may still have gone through — please wait a moment and call us before re-submitting to avoid a duplicate.'
+        );
+      } else {
+        setError(err.response?.data?.error || 'We could not book that slot. Please try another time.');
+      }
     } finally {
       setLoading(false);
     }
