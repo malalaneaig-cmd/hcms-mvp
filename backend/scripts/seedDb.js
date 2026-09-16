@@ -1,16 +1,11 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import pg from 'pg';
+import { buildPoolConfig } from '../src/config/pgPool.js';
 
 const { Pool } = pg;
 
-const adminPool = new Pool({
-  host:     process.env.PGHOST     || 'localhost',
-  port:     Number(process.env.PGPORT) || 5432,
-  user:     process.env.PGUSER     || 'postgres',
-  password: process.env.PGPASSWORD || 'postgres',
-  database: process.env.PGDATABASE || 'hcms',
-});
+const adminPool = new Pool(buildPoolConfig());
 
 const ADMIN_EMAIL    = 'admin@clinic.local';
 const ADMIN_PASSWORD = 'admin123';

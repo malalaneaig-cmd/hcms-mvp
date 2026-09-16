@@ -1,18 +1,18 @@
 import pg from 'pg';
 import 'dotenv/config';
 import { getDbContext } from './dbContext.js';
+import { buildPoolConfig } from './pgPool.js';
 
 const { Pool } = pg;
 
-const internalPool = new Pool({
-  host:     process.env.PGHOST     || 'localhost',
-  port:     Number(process.env.PGPORT) || 5432,
-  user:     process.env.PGAPPUSER || 'hcms_app',
-  password: process.env.PGAPPPASSWORD || 'hcms_app',
-  database: process.env.PGDATABASE || 'hcms',
-  max: 10,
-  idleTimeoutMillis: 30_000,
-});
+const internalPool = new Pool(
+  buildPoolConfig({
+    user: process.env.PGAPPUSER || 'hcms_app',
+    password: process.env.PGAPPPASSWORD || 'hcms_app',
+    max: 10,
+    idleTimeoutMillis: 30_000,
+  })
+);
 
 internalPool.on('error', (err) => {
   console.error('[db] Unexpected pool error:', err);
