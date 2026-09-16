@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { useI18n } from '../i18n/I18nProvider.jsx';
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 export default function LoginPage() {
   const { user, login } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [email, setEmail]       = useState('admin@clinic.local');
   const [password, setPassword] = useState('admin123');
@@ -20,7 +23,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || t('login.failed'));
     } finally {
       setLoading(false);
     }
@@ -28,18 +31,21 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen grid place-items-center bg-gradient-to-br from-brand-50 via-white to-slate-100 p-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-600 text-white text-2xl mb-4 shadow-card">
             🏥
           </div>
-          <h1 className="text-2xl text-slate-900">Welcome back</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to your clinic dashboard</p>
+          <h1 className="text-2xl text-slate-900">{t('login.title')}</h1>
+          <p className="text-sm text-slate-500 mt-1">{t('login.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card p-6 space-y-4">
           <div>
-            <label className="label" htmlFor="email">Email</label>
+            <label className="label" htmlFor="email">{t('common.email')}</label>
             <input
               id="email"
               type="email"
@@ -51,7 +57,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="label" htmlFor="password">Password</label>
+            <label className="label" htmlFor="password">{t('login.password')}</label>
             <input
               id="password"
               type="password"
@@ -70,12 +76,12 @@ export default function LoginPage() {
           )}
 
           <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? t('login.signingIn') : t('login.signIn')}
           </button>
 
           <p className="text-center text-xs text-slate-500 pt-2">
-            Demo login pre-filled. New patient?{' '}
-            <Link to="/book" className="text-brand-600 hover:underline">Book online</Link>
+            {t('login.demoHint')}{' '}
+            <Link to="/book" className="text-brand-600 hover:underline">{t('login.bookOnline')}</Link>
           </p>
         </form>
       </div>

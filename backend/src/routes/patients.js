@@ -2,9 +2,10 @@ import { Router } from 'express';
 import * as ctrl from '../controllers/patientsController.js';
 import * as notesCtrl from '../controllers/notesController.js';
 import { requireAuth } from '../middleware/auth.js';
+import { attachDbContext } from '../middleware/dbContext.js';
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, attachDbContext);
 
 router.get('/',          ctrl.list);
 router.post('/',         ctrl.create);

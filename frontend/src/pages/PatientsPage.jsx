@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import { Patients } from '../services/api.js';
+import { usePermissions } from '../hooks/usePermissions.js';
+import { useI18n } from '../i18n/I18nProvider.jsx';
+import { useFormatDate } from '../i18n/useFormatDate.js';
 
 export default function PatientsPage() {
+  const { t } = useI18n();
+  const { canManageClinic } = usePermissions();
+  const formatDate = useFormatDate();
   const [list, setList]       = useState([]);
   const [search, setSearch]   = useState('');
   const [loading, setLoading] = useState(true);
@@ -22,18 +27,20 @@ export default function PatientsPage() {
   }
 
   useEffect(() => {
-    const t = setTimeout(refresh, 250);
-    return () => clearTimeout(t);
+    const timer = setTimeout(refresh, 250);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   return (
     <>
       <PageHeader
-        title="Patients"
-        subtitle="Single source of truth for all patient records"
+        title={t('patients.title')}
+        subtitle={t('patients.subtitle')}
         actions={
-          <button onClick={() => setModalOpen(true)} className="btn-primary">+ New Patient</button>
+          canManageClinic ? (
+            <button onClick={() => setModalOpen(true)} className="btn-primary">{t('patients.new')}</button>
+          ) : null
         }
       />
 
@@ -42,24 +49,24 @@ export default function PatientsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, phone, or email…"
+            placeholder={t('patients.search')}
             className="input"
           />
         </div>
 
         <div className="card overflow-hidden">
           {loading ? (
-            <div className="px-6 py-10 text-center text-slate-500">Loading…</div>
+            <div className="px-6 py-10 text-center text-slate-500">{t('common.loading')}</div>
           ) : list.length === 0 ? (
-            <div className="px-6 py-10 text-center text-slate-500">No patients found.</div>
+            <div className="px-6 py-10 text-center text-slate-500">{t('patients.none')}</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
                 <tr>
-                  <th className="text-left px-6 py-3">Name</th>
-                  <th className="text-left px-6 py-3">Phone</th>
-                  <th className="text-left px-6 py-3">Email</th>
-                  <th className="text-left px-6 py-3">Created</th>
+                  <th className="text-left px-6 py-3">{t('common.name')}</th>
+                  <th className="text-left px-6 py-3">{t('common.phone')}</th>
+                  <th className="text-left px-6 py-3">{t('common.email')}</th>
+                  <th className="text-left px-6 py-3">{t('common.created')}</th>
                   <th className="px-6 py-3" />
                 </tr>
               </thead>
@@ -67,11 +74,11 @@ export default function PatientsPage() {
                 {list.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50">
                     <td className="px-6 py-3 font-medium text-slate-900">{p.name}</td>
-                    <td className="px-6 py-3 text-slate-600">{p.phone || '—'}</td>
-                    <td className="px-6 py-3 text-slate-600">{p.email || '—'}</td>
-                    <td className="px-6 py-3 text-slate-500 text-xs">{format(new Date(p.created_at), 'MMM d, yyyy')}</td>
+                    <td className="px-6 py-3 text-slate-600">{p.phone || t('common.dash')}</td>
+                    <td className="px-6 py-3 text-slate-600">{p.email || t('common.dash')}</td>
+                    <td className="px-6 py-3 text-slate-500 text-xs">{formatDate(new Date(p.created_at), 'MMM d, yyyy')}</td>
                     <td className="px-6 py-3 text-right">
-                      <Link to={`/patients/${p.id}`} className="btn-ghost text-brand-600">View →</Link>
+                      <Link to={`/patients/${p.id}`} className="btn-ghost text-brand-600">{t('patients.viewLink')}</Link>
                     </td>
                   </tr>
                 ))}
@@ -87,7 +94,8 @@ export default function PatientsPage() {
 }
 
 function NewPatientModal({ open, onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
+  const { t } = useI18n();
+  const [form, setForm] = useState({ name: '', phone: '', email: '', clinical_notes: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -102,13 +110,13 @@ function NewPatientModal({ open, onClose, onCreated }) {
         name:  form.name,
         phone: form.phone || null,
         email: form.email || null,
-        notes: form.notes || null,
+        clinical_notes: form.clinical_notes || null,
       });
-      setForm({ name: '', phone: '', email: '', notes: '' });
+      setForm({ name: '', phone: '', email: '', clinical_notes: '' });
       onCreated?.();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create patient');
+      setError(err.response?.data?.error || t('patients.modal.failed'));
     } finally {
       setSaving(false);
     }
@@ -118,34 +126,34 @@ function NewPatientModal({ open, onClose, onCreated }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="New patient"
+      title={t('patients.modal.title')}
       footer={
         <>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn-primary" onClick={submit} disabled={saving}>
-            {saving ? 'Saving…' : 'Create patient'}
+            {saving ? t('common.saving') : t('patients.modal.create')}
           </button>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="label">Full name *</label>
+          <label className="label">{t('patients.modal.fullName')}</label>
           <input className="input" value={form.name} onChange={(e) => update('name', e.target.value)} required />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="label">Phone</label>
+            <label className="label">{t('common.phone')}</label>
             <input className="input" value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="+252…" />
           </div>
           <div>
-            <label className="label">Email</label>
+            <label className="label">{t('common.email')}</label>
             <input type="email" className="input" value={form.email} onChange={(e) => update('email', e.target.value)} />
           </div>
         </div>
         <div>
-          <label className="label">Notes</label>
-          <textarea className="input" rows={3} value={form.notes} onChange={(e) => update('notes', e.target.value)} />
+          <label className="label">{t('common.notes')}</label>
+          <textarea className="input" rows={3} value={form.clinical_notes} onChange={(e) => update('clinical_notes', e.target.value)} />
         </div>
         {error && (
           <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>

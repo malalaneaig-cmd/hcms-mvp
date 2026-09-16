@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+/** Local dev uses Vite proxy (/api). Render/static hosts set VITE_API_BASE at build time. */
+export const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -47,15 +50,21 @@ export const Patients = {
 
 export const Doctors = {
   list:   ()      => api.get('/doctors').then((r) => r.data),
-  public: ()      => axios.get('/api/doctors/public').then((r) => r.data),
+  public: ()      => axios.get(`${API_BASE}/doctors/public`).then((r) => r.data),
   create: (data)  => api.post('/doctors', data).then((r) => r.data),
+  getSchedule: (id) => api.get(`/doctors/${id}/schedule`).then((r) => r.data),
+  saveSchedule: (id, blocks) => api.put(`/doctors/${id}/schedule`, { blocks }).then((r) => r.data),
   remove: (id)    => api.delete(`/doctors/${id}`).then((r) => r.data),
 };
 
 export const Appointments = {
   list:    (params)  => api.get('/appointments', { params }).then((r) => r.data),
+  bookingLimits: () =>
+    axios.get(`${API_BASE}/appointments/booking-limits`).then((r) => r.data),
+  slots:   (doctorId, date, channel = 'website') =>
+    axios.get(`${API_BASE}/appointments/slots`, { params: { doctor_id: doctorId, date, channel } }).then((r) => r.data),
   create:  (data)    => api.post('/appointments', data).then((r) => r.data),
-  publicBook: (data) => axios.post('/api/appointments/public', data).then((r) => r.data),
+  publicBook: (data) => axios.post(`${API_BASE}/appointments/public`, data).then((r) => r.data),
   setStatus: (id, s) => api.patch(`/appointments/${id}/status`, { status: s }).then((r) => r.data),
   remove:  (id)      => api.delete(`/appointments/${id}`).then((r) => r.data),
 };
@@ -70,4 +79,15 @@ export const Invoices = {
   create: (data)    => api.post('/invoices', data).then((r) => r.data),
   setStatus: (id, s)=> api.patch(`/invoices/${id}/status`, { status: s }).then((r) => r.data),
   remove: (id)      => api.delete(`/invoices/${id}`).then((r) => r.data),
+};
+
+export const Conversations = {
+  list:         () => api.get('/conversations').then((r) => r.data),
+  thread:       (phone, channel) => api.get(`/conversations/${encodeURIComponent(phone)}`, { params: { channel } }).then((r) => r.data),
+  reply:        (phone, message, channel) => api.post(`/conversations/${encodeURIComponent(phone)}/reply`, { message, channel }).then((r) => r.data),
+  escalations:  () => api.get('/conversations/escalations').then((r) => r.data),
+  resolve:      (id) => api.patch(`/conversations/escalations/${id}`).then((r) => r.data),
+  runReminders: () => api.post('/conversations/reminders/run').then((r) => r.data),
+  simulate:     (phone, message, channel) =>
+    api.post('/webhooks/test', { phone, message, channel }).then((r) => r.data),
 };

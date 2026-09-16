@@ -1,14 +1,18 @@
 import { Router } from 'express';
 import * as ctrl from '../controllers/appointmentsController.js';
 import { requireAuth } from '../middleware/auth.js';
+import { attachDbContext } from '../middleware/dbContext.js';
+import { publicBookingLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
 // PUBLIC: website booking channel — no auth required
-router.post('/public', ctrl.publicBooking);
+router.get('/booking-limits', ctrl.bookingLimits);
+router.get('/slots', ctrl.availableSlots);
+router.post('/public', publicBookingLimiter, ctrl.publicBooking);
 
 // Authenticated channels (reception / phone / staff dashboard)
-router.use(requireAuth);
+router.use(requireAuth, attachDbContext);
 
 router.get('/',           ctrl.list);
 router.post('/',          ctrl.create);

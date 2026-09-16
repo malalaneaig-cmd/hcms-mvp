@@ -11,6 +11,7 @@ import DoctorsPage      from './pages/DoctorsPage.jsx';
 import InvoicesPage     from './pages/InvoicesPage.jsx';
 import StaffPage        from './pages/StaffPage.jsx';
 import PublicBookingPage from './pages/PublicBookingPage.jsx';
+import ConversationsPage from './pages/ConversationsPage.jsx';
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/patients/:id" element={<PatientDetailPage />} />
         <Route path="/doctors"      element={<DoctorsPage />} />
         <Route path="/invoices"     element={<InvoicesPage />} />
+        <Route path="/conversations" element={<ConversationsPage />} />
         <Route path="/staff"        element={<StaffPage />} />
       </Route>
 

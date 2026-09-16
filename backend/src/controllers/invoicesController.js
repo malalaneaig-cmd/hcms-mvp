@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { pool } from '../config/db.js';
 import { HttpError } from '../middleware/errorHandler.js';
+import { assertStaff } from '../middleware/permissions.js';
 
 const createSchema = z.object({
   patient_id: z.number().int().positive(),
@@ -46,6 +47,7 @@ export async function get(req, res) {
 }
 
 export async function create(req, res) {
+  assertStaff(req);
   const data = createSchema.parse(req.body);
   const { rows } = await pool.query(
     `INSERT INTO invoices (patient_id, amount, status)
@@ -57,6 +59,7 @@ export async function create(req, res) {
 }
 
 export async function updateStatus(req, res) {
+  assertStaff(req);
   const { status } = updateStatusSchema.parse(req.body);
   const { rows } = await pool.query(
     `UPDATE invoices SET status = $1 WHERE id = $2 RETURNING *`,
@@ -67,6 +70,7 @@ export async function updateStatus(req, res) {
 }
 
 export async function remove(req, res) {
+  assertStaff(req);
   const { rowCount } = await pool.query('DELETE FROM invoices WHERE id = $1', [req.params.id]);
   if (rowCount === 0) throw new HttpError(404, 'Invoice not found');
   res.status(204).end();

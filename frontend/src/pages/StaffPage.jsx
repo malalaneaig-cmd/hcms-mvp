@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
-import { Staff } from '../services/api.js';
+import { Doctors, Staff } from '../services/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { useI18n } from '../i18n/I18nProvider.jsx';
+import { useFormatDate } from '../i18n/useFormatDate.js';
 
 const ROLE_COLORS = {
   admin:  'bg-purple-50 text-purple-700',
@@ -12,14 +13,17 @@ const ROLE_COLORS = {
 };
 
 function RolePill({ role }) {
+  const { t } = useI18n();
   return (
     <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-md ${ROLE_COLORS[role] || ROLE_COLORS.staff}`}>
-      {role}
+      {t(`role.${role}`)}
     </span>
   );
 }
 
 export default function StaffPage() {
+  const { t } = useI18n();
+  const formatDate = useFormatDate();
   const { user } = useAuth();
   const [list, setList]       = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +36,7 @@ export default function StaffPage() {
     try {
       setList(await Staff.list());
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load staff list');
+      setError(err.response?.data?.error || t('staff.failedLoad'));
     } finally {
       setLoading(false);
     }
@@ -45,8 +49,8 @@ export default function StaffPage() {
       <div className="p-10">
         <div className="card p-10 text-center">
           <div className="text-3xl mb-3">🔒</div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-1">Admin only</h2>
-          <p className="text-sm text-slate-500">Only administrators can view and manage staff accounts.</p>
+          <h2 className="text-lg font-semibold text-slate-900 mb-1">{t('staff.adminOnly')}</h2>
+          <p className="text-sm text-slate-500">{t('staff.adminOnlyHint')}</p>
         </div>
       </div>
     );
@@ -55,9 +59,9 @@ export default function StaffPage() {
   return (
     <>
       <PageHeader
-        title="Staff"
-        subtitle="Manage clinic users — administrators, staff, and doctor accounts"
-        actions={<button className="btn-primary" onClick={() => setOpen(true)}>+ Add staff</button>}
+        title={t('staff.title')}
+        subtitle={t('staff.subtitle')}
+        actions={<button className="btn-primary" onClick={() => setOpen(true)}>{t('staff.add')}</button>}
       />
 
       <div className="p-8 space-y-4">
@@ -67,17 +71,17 @@ export default function StaffPage() {
 
         <div className="card overflow-hidden">
           {loading ? (
-            <div className="px-6 py-10 text-center text-slate-500">Loading…</div>
+            <div className="px-6 py-10 text-center text-slate-500">{t('common.loading')}</div>
           ) : list.length === 0 ? (
-            <div className="px-6 py-10 text-center text-slate-500">No staff yet.</div>
+            <div className="px-6 py-10 text-center text-slate-500">{t('staff.none')}</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
                 <tr>
-                  <th className="text-left px-6 py-3">Name</th>
-                  <th className="text-left px-6 py-3">Email</th>
-                  <th className="text-left px-6 py-3">Role</th>
-                  <th className="text-left px-6 py-3">Joined</th>
+                  <th className="text-left px-6 py-3">{t('common.name')}</th>
+                  <th className="text-left px-6 py-3">{t('common.email')}</th>
+                  <th className="text-left px-6 py-3">{t('staff.modal.role').replace(' *', '')}</th>
+                  <th className="text-left px-6 py-3">{t('common.joined')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -86,12 +90,12 @@ export default function StaffPage() {
                     <td className="px-6 py-3 font-medium">
                       {u.full_name}
                       {u.id === user.id && (
-                        <span className="ml-2 text-xs text-slate-400">(you)</span>
+                        <span className="ml-2 text-xs text-slate-400">{t('common.you')}</span>
                       )}
                     </td>
                     <td className="px-6 py-3 text-slate-600">{u.email}</td>
                     <td className="px-6 py-3"><RolePill role={u.role} /></td>
-                    <td className="px-6 py-3 text-slate-500">{format(new Date(u.created_at), 'MMM d, yyyy')}</td>
+                    <td className="px-6 py-3 text-slate-500">{formatDate(new Date(u.created_at), 'MMM d, yyyy')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -106,15 +110,17 @@ export default function StaffPage() {
 }
 
 function NewStaffModal({ open, onClose, onCreated }) {
-  const [form, setForm] = useState({ email: '', password: '', full_name: '', role: 'staff' });
+  const { t } = useI18n();
+  const [form, setForm] = useState({ email: '', password: '', full_name: '', role: 'staff', doctor_id: '' });
+  const [doctors, setDoctors] = useState([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setForm({ email: '', password: '', full_name: '', role: 'staff' });
-      setError('');
-    }
+    if (!open) return;
+    setForm({ email: '', password: '', full_name: '', role: 'staff', doctor_id: '' });
+    setError('');
+    Doctors.list().then(setDoctors);
   }, [open]);
 
   function update(k, v) { setForm((f) => ({ ...f, [k]: v })); }
@@ -123,20 +129,30 @@ function NewStaffModal({ open, onClose, onCreated }) {
     e.preventDefault();
     setError('');
     if (!form.email || !form.password || !form.full_name) {
-      setError('Email, password, and full name are required');
+      setError(t('staff.modal.required'));
       return;
     }
     if (form.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('staff.modal.passwordMin'));
+      return;
+    }
+    if (form.role === 'doctor' && !form.doctor_id) {
+      setError(t('staff.modal.practitionerRequired'));
       return;
     }
     setSaving(true);
     try {
-      await Staff.create(form);
+      const payload = { ...form };
+      if (form.role === 'doctor') {
+        payload.doctor_id = Number(form.doctor_id);
+      } else {
+        delete payload.doctor_id;
+      }
+      await Staff.create(payload);
       onCreated?.();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to add staff member');
+      setError(err.response?.data?.error || t('staff.modal.failed'));
     } finally {
       setSaving(false);
     }
@@ -146,60 +162,86 @@ function NewStaffModal({ open, onClose, onCreated }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Add staff member"
+      title={t('staff.modal.title')}
       footer={
         <>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn-primary" onClick={submit} disabled={saving}>
-            {saving ? 'Saving…' : 'Create account'}
+            {saving ? t('common.saving') : t('staff.modal.create')}
           </button>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="label">Full name *</label>
+          <label className="label">{t('patients.modal.fullName')}</label>
           <input
             className="input"
             value={form.full_name}
             onChange={(e) => update('full_name', e.target.value)}
-            placeholder="e.g. Dr. Amina Khalif"
+            placeholder={t('staff.modal.namePh')}
             required
           />
         </div>
         <div>
-          <label className="label">Email *</label>
+          <label className="label">{t('common.email')} *</label>
           <input
             type="email"
             className="input"
             value={form.email}
             onChange={(e) => update('email', e.target.value)}
-            placeholder="user@clinic.local"
+            placeholder={t('staff.modal.emailPh')}
             required
           />
         </div>
         <div>
-          <label className="label">Temporary password *</label>
+          <label className="label">{t('staff.modal.tempPassword')}</label>
           <input
             type="text"
             className="input"
             value={form.password}
             onChange={(e) => update('password', e.target.value)}
-            placeholder="At least 6 characters"
+            placeholder={t('staff.modal.passwordPh')}
             required
           />
           <p className="text-xs text-slate-500 mt-1">
-            Share this securely with the new user — they should change it on first login.
+            {t('staff.modal.passwordHint')}
           </p>
         </div>
         <div>
-          <label className="label">Role *</label>
-          <select className="input" value={form.role} onChange={(e) => update('role', e.target.value)}>
-            <option value="staff">Staff (reception, front desk)</option>
-            <option value="doctor">Doctor</option>
-            <option value="admin">Admin (can manage staff)</option>
+          <label className="label">{t('staff.modal.role')}</label>
+          <select
+            className="input"
+            value={form.role}
+            onChange={(e) => {
+              const role = e.target.value;
+              setForm((f) => ({ ...f, role, doctor_id: role === 'doctor' ? f.doctor_id : '' }));
+            }}
+          >
+            <option value="staff">{t('staff.modal.roleStaff')}</option>
+            <option value="doctor">{t('staff.modal.roleDoctor')}</option>
+            <option value="admin">{t('staff.modal.roleAdmin')}</option>
           </select>
         </div>
+
+        {form.role === 'doctor' && (
+          <div>
+            <label className="label">{t('staff.modal.practitionerProfile')}</label>
+            <select
+              className="input"
+              value={form.doctor_id}
+              onChange={(e) => update('doctor_id', e.target.value)}
+              required
+            >
+              <option value="">{t('staff.modal.selectPractitioner')}</option>
+              {doctors.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}{d.specialty ? ` · ${d.specialty}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {error && (
           <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>

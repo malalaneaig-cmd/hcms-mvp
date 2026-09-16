@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { format } from 'date-fns';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import StatusPill, { ChannelPill } from '../components/StatusPill.jsx';
 import { Appointments, Doctors, Patients } from '../services/api.js';
+import SlotPicker from '../components/SlotPicker.jsx';
+import { useBookingLimits } from '../hooks/useBookingLimits.js';
+import { usePermissions } from '../hooks/usePermissions.js';
+import { useI18n } from '../i18n/I18nProvider.jsx';
+import { useFormatDate } from '../i18n/useFormatDate.js';
+
+const STATUS_OPTIONS = ['booked', 'completed', 'cancelled', 'no_show'];
+const CHANNEL_OPTIONS = ['reception', 'website', 'phone', 'whatsapp', 'sms'];
 
 export default function AppointmentsPage() {
+  const { t } = useI18n();
+  const { canManageClinic } = usePermissions();
+  const formatDate = useFormatDate();
   const [list, setList]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter]   = useState({ status: '', channel: '' });
@@ -34,54 +44,59 @@ export default function AppointmentsPage() {
   return (
     <>
       <PageHeader
-        title="Appointments"
-        subtitle="All bookings across reception, website, and phone channels"
+        title={t('appointments.title')}
+        subtitle={t('appointments.subtitle')}
         actions={
-          <button onClick={() => setBookOpen(true)} className="btn-primary">+ Book appointment</button>
+          canManageClinic ? (
+            <button onClick={() => setBookOpen(true)} className="btn-primary">{t('appointments.book')}</button>
+          ) : null
         }
       />
 
       <div className="p-8 space-y-4">
         <div className="card p-4 flex items-center gap-3">
           <select className="input max-w-[180px]" value={filter.status} onChange={(e) => setFilter((f) => ({ ...f, status: e.target.value }))}>
-            <option value="">All statuses</option>
-            <option value="booked">Booked</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="no_show">No-show</option>
+            <option value="">{t('common.allStatuses')}</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{t(`status.${s}`)}</option>
+            ))}
           </select>
           <select className="input max-w-[180px]" value={filter.channel} onChange={(e) => setFilter((f) => ({ ...f, channel: e.target.value }))}>
-            <option value="">All channels</option>
-            <option value="reception">Reception</option>
-            <option value="website">Website</option>
-            <option value="phone">Phone</option>
+            <option value="">{t('common.allChannels')}</option>
+            {CHANNEL_OPTIONS.map((ch) => (
+              <option key={ch} value={ch}>{t(`channel.${ch}`)}</option>
+            ))}
           </select>
-          <span className="text-xs text-slate-500 ml-auto">{list.length} result{list.length !== 1 && 's'}</span>
+          <span className="text-xs text-slate-500 ml-auto">
+            {list.length === 1
+              ? t('appointments.results', { count: list.length })
+              : t('appointments.resultsPlural', { count: list.length })}
+          </span>
         </div>
 
         <div className="card overflow-hidden">
           {loading ? (
-            <div className="px-6 py-10 text-center text-slate-500">Loading…</div>
+            <div className="px-6 py-10 text-center text-slate-500">{t('common.loading')}</div>
           ) : list.length === 0 ? (
-            <div className="px-6 py-10 text-center text-slate-500">No appointments match these filters.</div>
+            <div className="px-6 py-10 text-center text-slate-500">{t('appointments.noMatch')}</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
                 <tr>
-                  <th className="text-left px-6 py-3">When</th>
-                  <th className="text-left px-6 py-3">Patient</th>
-                  <th className="text-left px-6 py-3">Doctor</th>
-                  <th className="text-left px-6 py-3">Channel</th>
-                  <th className="text-left px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th className="text-left px-6 py-3">{t('common.when')}</th>
+                  <th className="text-left px-6 py-3">{t('common.patient')}</th>
+                  <th className="text-left px-6 py-3">{t('common.doctor')}</th>
+                  <th className="text-left px-6 py-3">{t('common.channel')}</th>
+                  <th className="text-left px-6 py-3">{t('common.status')}</th>
+                  <th className="px-6 py-3 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {list.map((a) => (
                   <tr key={a.id} className="hover:bg-slate-50">
                     <td className="px-6 py-3">
-                      <div className="font-medium">{format(new Date(a.appointment_time), 'MMM d, yyyy')}</div>
-                      <div className="text-xs text-slate-500">{format(new Date(a.appointment_time), 'HH:mm')}</div>
+                      <div className="font-medium">{formatDate(new Date(a.appointment_time), 'MMM d, yyyy')}</div>
+                      <div className="text-xs text-slate-500">{formatDate(new Date(a.appointment_time), 'HH:mm')}</div>
                     </td>
                     <td className="px-6 py-3">
                       <div className="font-medium">{a.patient_name}</div>
@@ -91,16 +106,19 @@ export default function AppointmentsPage() {
                     <td className="px-6 py-3"><ChannelPill channel={a.channel} /></td>
                     <td className="px-6 py-3"><StatusPill status={a.status} /></td>
                     <td className="px-6 py-3 text-right">
-                      <select
-                        className="input text-xs py-1 max-w-[140px] inline-block"
-                        value={a.status}
-                        onChange={(e) => setStatus(a.id, e.target.value)}
-                      >
-                        <option value="booked">Booked</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="no_show">No-show</option>
-                      </select>
+                      {canManageClinic ? (
+                        <select
+                          className="input text-xs py-1 max-w-[140px] inline-block"
+                          value={a.status}
+                          onChange={(e) => setStatus(a.id, e.target.value)}
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>{t(`status.${s}`)}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <StatusPill status={a.status} />
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -116,9 +134,7 @@ export default function AppointmentsPage() {
 }
 
 function BookModal({ open, onClose, onCreated }) {
-  const [doctors, setDoctors]   = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [search, setSearch]     = useState('');
+  const { t } = useI18n();
   const [form, setForm] = useState({
     patient_id: '',
     doctor_id:  '',
@@ -126,6 +142,10 @@ function BookModal({ open, onClose, onCreated }) {
     time: '',
     channel: 'reception',
   });
+  const { minDate, maxDate, maxDays } = useBookingLimits(form.channel);
+  const [doctors, setDoctors]   = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [search, setSearch]     = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -134,6 +154,7 @@ function BookModal({ open, onClose, onCreated }) {
     Doctors.list().then(setDoctors);
     Patients.list().then(setPatients);
     setForm({ patient_id: '', doctor_id: '', date: '', time: '', channel: 'reception' });
+    setSearch('');
     setError('');
   }, [open]);
 
@@ -150,15 +171,20 @@ function BookModal({ open, onClose, onCreated }) {
   async function submit(e) {
     e.preventDefault();
     setError('');
-    if (!form.patient_id || !form.doctor_id || !form.date || !form.time) {
-      setError('All fields are required');
+    if (!form.patient_id) {
+      setError(
+        search.trim()
+          ? t('appointments.bookModal.patientNotFound')
+          : t('appointments.bookModal.selectPatientRequired')
+      );
+      return;
+    }
+    if (!form.doctor_id || !form.date || !form.time) {
+      setError(t('common.required'));
       return;
     }
     setSaving(true);
     try {
-      // Send a naive local datetime (no Z / no UTC conversion).
-      // The clinic operates in one timezone; storing wall-clock time end-to-end avoids
-      // off-by-one bugs from TIMESTAMP-without-time-zone columns.
       await Appointments.create({
         patient_id:       Number(form.patient_id),
         doctor_id:        Number(form.doctor_id),
@@ -168,15 +194,11 @@ function BookModal({ open, onClose, onCreated }) {
       onCreated?.();
       onClose();
     } catch (err) {
-      // Refresh the list regardless — if a network blip ate the response,
-      // the booking may have succeeded server-side and we want to show it.
       onCreated?.();
       if (!err.response) {
-        setError(
-          'Network hiccup — your booking may have been saved. Please close this dialog and check the list below before retrying.'
-        );
+        setError(t('appointments.bookModal.networkHiccup'));
       } else {
-        setError(err.response?.data?.error || 'Failed to book');
+        setError(err.response?.data?.error || t('appointments.bookModal.failed'));
       }
     } finally {
       setSaving(false);
@@ -189,54 +211,61 @@ function BookModal({ open, onClose, onCreated }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Book appointment"
+      title={t('appointments.bookModal.title')}
       size="lg"
       footer={
         <>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn-primary" onClick={submit} disabled={saving}>
-            {saving ? 'Booking…' : 'Confirm booking'}
+            {saving ? t('appointments.bookModal.booking') : t('appointments.bookModal.confirm')}
           </button>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="label">Booking channel</label>
+          <label className="label">{t('appointments.bookModal.bookingChannel')}</label>
           <div className="flex gap-2">
             {['reception', 'phone'].map((ch) => (
               <button
                 type="button"
                 key={ch}
-                onClick={() => update('channel', ch)}
+                onClick={() => setForm((f) => ({ ...f, channel: ch, date: '', time: '' }))}
                 className={`btn ${form.channel === ch ? 'btn-primary' : 'btn-secondary'}`}
               >
-                {ch === 'reception' ? '🧑‍💼 Reception' : '📞 Phone'}
+                {ch === 'reception' ? t('appointments.bookModal.receptionBtn') : t('appointments.bookModal.phoneBtn')}
               </button>
             ))}
           </div>
           <p className="text-xs text-slate-500 mt-2">
-            Website bookings come in automatically through the public form.
+            {t('appointments.bookModal.websiteHint')}
           </p>
         </div>
 
         <div>
-          <label className="label">Patient</label>
+          <label className="label">{t('common.patient')}</label>
           <input
             className="input mb-2"
-            placeholder="Search by name, phone, or email…"
+            placeholder={t('appointments.bookModal.searchPatient')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <div className="border border-slate-200 rounded-lg max-h-44 overflow-y-auto divide-y divide-slate-100">
             {filteredPatients.length === 0 && (
-              <div className="px-3 py-2 text-sm text-slate-500">No matching patients.</div>
+              <div className="px-3 py-2 text-sm text-slate-500">
+                {search.trim()
+                  ? t('appointments.bookModal.noMatchingPatientsHint')
+                  : t('appointments.bookModal.noMatchingPatients')}
+              </div>
             )}
             {filteredPatients.map((p) => (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => update('patient_id', String(p.id))}
+                onClick={() => {
+                  update('patient_id', String(p.id));
+                  setSearch(p.name);
+                }}
                 className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
                   Number(form.patient_id) === p.id ? 'bg-brand-50' : ''
                 }`}
@@ -247,29 +276,46 @@ function BookModal({ open, onClose, onCreated }) {
             ))}
           </div>
           {selectedPatient && (
-            <div className="text-xs text-brand-700 mt-2">Selected: {selectedPatient.name}</div>
+            <div className="text-xs text-brand-700 mt-2">{t('appointments.bookModal.selected', { name: selectedPatient.name })}</div>
           )}
         </div>
 
         <div>
-          <label className="label">Doctor</label>
-          <select className="input" value={form.doctor_id} onChange={(e) => update('doctor_id', e.target.value)}>
-            <option value="">Select a doctor…</option>
+          <label className="label">{t('common.doctor')}</label>
+          <select
+            className="input"
+            value={form.doctor_id}
+            onChange={(e) => setForm((f) => ({ ...f, doctor_id: e.target.value, time: '' }))}
+          >
+            <option value="">{t('common.selectDoctor')}</option>
             {doctors.map((d) => (
               <option key={d.id} value={d.id}>{d.name} {d.specialty ? `· ${d.specialty}` : ''}</option>
             ))}
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="label">Date</label>
-            <input type="date" className="input" value={form.date} onChange={(e) => update('date', e.target.value)} />
-          </div>
-          <div>
-            <label className="label">Time</label>
-            <input type="time" className="input" value={form.time} onChange={(e) => update('time', e.target.value)} />
-          </div>
+        <div>
+          <label className="label">{t('common.date')}</label>
+          <input
+            type="date"
+            className="input"
+            value={form.date}
+            min={minDate}
+            max={maxDate}
+            onChange={(e) => setForm((f) => ({ ...f, date: e.target.value, time: '' }))}
+          />
+          <p className="text-xs text-slate-500 mt-1">{t('appointments.bookModal.dateWindowHint', { days: maxDays })}</p>
+        </div>
+
+        <div>
+          <label className="label">{t('appointments.bookModal.availableTime')}</label>
+          <SlotPicker
+            doctorId={form.doctor_id}
+            date={form.date}
+            value={form.time}
+            channel={form.channel}
+            onChange={(time) => update('time', time)}
+          />
         </div>
 
         {error && (

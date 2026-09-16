@@ -1,0 +1,2 @@
+ALTER TABLE chatbot_sessions
+  ADD COLUMN IF NOT EXISTS failed_attempts INTEGER NOT NULL DEFAULT 0;

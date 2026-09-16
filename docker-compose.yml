@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hcms
+    volumes:
+      - hcms_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hcms"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: hcms
+      PGAPPUSER: hcms_app
+      PGAPPPASSWORD: hcms_app
+      BOOKING_MIN_LEAD_MINUTES_PATIENT: 240
+      CANCEL_CUTOFF_HOURS_PATIENT: 24
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-please}
+      JWT_EXPIRES_IN: 12h
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-local}
+      AFRICALA_API_URL: ${AFRICALA_API_URL:-https://api.africala.net}
+      AFRICALA_API_KEY: ${AFRICALA_API_KEY:-}
+      AFRICALA_WEBHOOK_SECRET: ${AFRICALA_WEBHOOK_SECRET:-}
+      AFRICALA_SMS_SENDER_ID: ${AFRICALA_SMS_SENDER_ID:-CLINIC}
+      REMINDER_INTERVAL_MS: 900000
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  hcms_pgdata:

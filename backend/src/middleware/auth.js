@@ -34,6 +34,14 @@ export function requireAdmin(req, res, next) {
   return next();
 }
 
+/** Must run AFTER requireAuth. Allows admin and staff (reception). */
+export function requireStaff(req, res, next) {
+  if (req.user?.role === 'admin' || req.user?.role === 'staff') {
+    return next();
+  }
+  return res.status(403).json({ error: 'Staff or admin role required for this action' });
+}
+
 export function signToken(payload, options = {}) {
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '12h',

@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { format } from 'date-fns';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import StatusPill from '../components/StatusPill.jsx';
+import StaffOnlyGate from '../components/StaffOnlyGate.jsx';
 import { Invoices, Patients } from '../services/api.js';
+import { usePermissions } from '../hooks/usePermissions.js';
+import { useI18n } from '../i18n/I18nProvider.jsx';
+import { useFormatDate } from '../i18n/useFormatDate.js';
 
 export default function InvoicesPage() {
+  const { t } = useI18n();
+  const { canManageClinic } = usePermissions();
+  const formatDate = useFormatDate();
   const [list, setList]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter]   = useState('');
@@ -39,53 +45,55 @@ export default function InvoicesPage() {
     );
   }, [list]);
 
+  if (!canManageClinic) return <StaffOnlyGate />;
+
   return (
     <>
       <PageHeader
-        title="Invoices"
-        subtitle="Basic billing — track unpaid and paid invoices"
-        actions={<button className="btn-primary" onClick={() => setOpen(true)}>+ New invoice</button>}
+        title={t('invoices.title')}
+        subtitle={t('invoices.subtitle')}
+        actions={<button className="btn-primary" onClick={() => setOpen(true)}>{t('invoices.new')}</button>}
       />
 
       <div className="p-8 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="card p-5">
-            <div className="text-xs text-slate-500">Showing</div>
+            <div className="text-xs text-slate-500">{t('invoices.showing')}</div>
             <div className="text-2xl font-semibold mt-1">{list.length}</div>
           </div>
           <div className="card p-5">
-            <div className="text-xs text-emerald-600">Paid</div>
+            <div className="text-xs text-emerald-600">{t('invoices.paid')}</div>
             <div className="text-2xl font-semibold mt-1">${totals.paid.toFixed(2)}</div>
           </div>
           <div className="card p-5">
-            <div className="text-xs text-amber-600">Unpaid</div>
+            <div className="text-xs text-amber-600">{t('invoices.unpaid')}</div>
             <div className="text-2xl font-semibold mt-1">${totals.unpaid.toFixed(2)}</div>
           </div>
         </div>
 
         <div className="card p-4 flex items-center gap-3">
           <select className="input max-w-[180px]" value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">All statuses</option>
-            <option value="unpaid">Unpaid</option>
-            <option value="paid">Paid</option>
+            <option value="">{t('common.allStatuses')}</option>
+            <option value="unpaid">{t('status.unpaid')}</option>
+            <option value="paid">{t('status.paid')}</option>
           </select>
         </div>
 
         <div className="card overflow-hidden">
           {loading ? (
-            <div className="px-6 py-10 text-center text-slate-500">Loading…</div>
+            <div className="px-6 py-10 text-center text-slate-500">{t('common.loading')}</div>
           ) : list.length === 0 ? (
-            <div className="px-6 py-10 text-center text-slate-500">No invoices.</div>
+            <div className="px-6 py-10 text-center text-slate-500">{t('invoices.none')}</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
                 <tr>
                   <th className="text-left px-6 py-3">#</th>
-                  <th className="text-left px-6 py-3">Patient</th>
-                  <th className="text-left px-6 py-3">Amount</th>
-                  <th className="text-left px-6 py-3">Date</th>
-                  <th className="text-left px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Action</th>
+                  <th className="text-left px-6 py-3">{t('common.patient')}</th>
+                  <th className="text-left px-6 py-3">{t('common.amount')}</th>
+                  <th className="text-left px-6 py-3">{t('common.date')}</th>
+                  <th className="text-left px-6 py-3">{t('common.status')}</th>
+                  <th className="px-6 py-3 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -97,13 +105,13 @@ export default function InvoicesPage() {
                       <div className="text-xs text-slate-500">{i.patient_phone}</div>
                     </td>
                     <td className="px-6 py-3 font-medium">${Number(i.amount).toFixed(2)}</td>
-                    <td className="px-6 py-3 text-slate-600">{format(new Date(i.created_at), 'MMM d, yyyy')}</td>
+                    <td className="px-6 py-3 text-slate-600">{formatDate(new Date(i.created_at), 'MMM d, yyyy')}</td>
                     <td className="px-6 py-3"><StatusPill status={i.status} /></td>
                     <td className="px-6 py-3 text-right">
                       {i.status === 'unpaid' ? (
-                        <button className="btn-primary text-xs py-1 px-3" onClick={() => setStatus(i.id, 'paid')}>Mark paid</button>
+                        <button className="btn-primary text-xs py-1 px-3" onClick={() => setStatus(i.id, 'paid')}>{t('invoices.markPaid')}</button>
                       ) : (
-                        <button className="btn-secondary text-xs py-1 px-3" onClick={() => setStatus(i.id, 'unpaid')}>Mark unpaid</button>
+                        <button className="btn-secondary text-xs py-1 px-3" onClick={() => setStatus(i.id, 'unpaid')}>{t('invoices.markUnpaid')}</button>
                       )}
                     </td>
                   </tr>
@@ -120,6 +128,7 @@ export default function InvoicesPage() {
 }
 
 function NewInvoiceModal({ open, onClose, onCreated }) {
+  const { t } = useI18n();
   const [patients, setPatients] = useState([]);
   const [form, setForm] = useState({ patient_id: '', amount: '' });
   const [error, setError] = useState('');
@@ -136,7 +145,7 @@ function NewInvoiceModal({ open, onClose, onCreated }) {
     e.preventDefault();
     setError('');
     if (!form.patient_id || !form.amount) {
-      setError('Patient and amount are required');
+      setError(t('invoices.modal.required'));
       return;
     }
     setSaving(true);
@@ -148,7 +157,7 @@ function NewInvoiceModal({ open, onClose, onCreated }) {
       onCreated?.();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create invoice');
+      setError(err.response?.data?.error || t('invoices.modal.failed'));
     } finally {
       setSaving(false);
     }
@@ -158,24 +167,24 @@ function NewInvoiceModal({ open, onClose, onCreated }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="New invoice"
+      title={t('invoices.modal.title')}
       footer={
         <>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={submit} disabled={saving}>{saving ? 'Creating…' : 'Create invoice'}</button>
+          <button className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
+          <button className="btn-primary" onClick={submit} disabled={saving}>{saving ? t('common.creating') : t('invoices.modal.create')}</button>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="label">Patient *</label>
+          <label className="label">{t('common.patient')} *</label>
           <select className="input" value={form.patient_id} onChange={(e) => setForm((f) => ({ ...f, patient_id: e.target.value }))}>
-            <option value="">Select a patient…</option>
+            <option value="">{t('common.selectPatient')}</option>
             {patients.map((p) => <option key={p.id} value={p.id}>{p.name} {p.phone ? `· ${p.phone}` : ''}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Amount *</label>
+          <label className="label">{t('common.amount')} *</label>
           <input
             type="number"
             min="0"
