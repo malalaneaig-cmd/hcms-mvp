@@ -13,12 +13,23 @@ const ADMIN_PASSWORD = 'admin123';
 async function run() {
   console.log('Seeding database...');
 
-  await adminPool.query(
+  const client = await adminPool.connect();
+  try {
+    await client.query(`SELECT set_config('app.role', 'system', false)`);
+    await seed(client);
+  } finally {
+    client.release();
+    await adminPool.end();
+  }
+}
+
+async function seed(client) {
+  await client.query(
     'TRUNCATE audit_logs, chatbot_messages, chatbot_escalations, chatbot_sessions, invoices, notes, appointments, doctor_schedules, patient_profiles, doctors, patients, users RESTART IDENTITY CASCADE'
   );
 
   const hash = await bcrypt.hash(ADMIN_PASSWORD, 10);
-  await adminPool.query(
+  await client.query(
     `INSERT INTO users (email, password_hash, full_name, role)
      VALUES ($1, $2, $3, $4)`,
     [ADMIN_EMAIL, hash, 'Clinic Admin', 'admin']
@@ -48,7 +59,7 @@ async function run() {
   const doctorIds = [];
   for (let i = 0; i < doctors.length; i++) {
     const [name, specialty] = doctors[i];
-    const { rows } = await adminPool.query(
+    const { rows } = await client.query(
       `INSERT INTO doctors (name, specialty) VALUES ($1, $2) RETURNING id`,
       [name, specialty]
     );
@@ -56,7 +67,7 @@ async function run() {
     doctorIds.push(doctorId);
     const blocks = i === 0 ? [...weekdayHours, ...saturdayMorning] : weekdayHours;
     for (const block of blocks) {
-      await adminPool.query(
+      await client.query(
         `INSERT INTO doctor_schedules (doctor_id, weekday, start_time, end_time) VALUES ($1, $2, $3, $4)`,
         [doctorId, block.weekday, block.start, block.end]
       );
@@ -73,7 +84,7 @@ async function run() {
   ];
   for (let i = 0; i < doctorAccounts.length; i++) {
     const [email, fullName] = doctorAccounts[i];
-    await adminPool.query(
+    await client.query(
       `INSERT INTO users (email, password_hash, full_name, role, doctor_id)
        VALUES ($1, $2, $3, 'doctor', $4)`,
       [email, doctorHash, fullName, doctorIds[i]]
@@ -87,11 +98,11 @@ async function run() {
     ['João Sitoe',       '+258843333333', null,                  'Alérgico à penicilina.'],
   ];
   for (const [name, phone, email, clinicalNotes] of patients) {
-    const { rows } = await adminPool.query(
+    const { rows } = await client.query(
       `INSERT INTO patients (name, phone, email) VALUES ($1, $2, $3) RETURNING id`,
       [name, phone, email]
     );
-    await adminPool.query(
+    await client.query(
       `INSERT INTO patient_profiles (patient_id, clinical_notes) VALUES ($1, $2)`,
       [rows[0].id, clinicalNotes]
     );
@@ -105,7 +116,7 @@ async function run() {
   const tomorrow10 = `${date}T10:30:00`;
   const tomorrow11 = `${date}T11:00:00`;
 
-  await adminPool.query(
+  await client.query(
     `INSERT INTO appointments (patient_id, doctor_id, appointment_time, status, channel)
      VALUES (1, 1, $1, 'booked', 'reception'),
             (2, 2, $2, 'booked', 'website'),
@@ -114,13 +125,12 @@ async function run() {
   );
   console.log('  • inserted 3 demo appointments');
 
-  await adminPool.query(
+  await client.query(
     `INSERT INTO invoices (patient_id, amount, status) VALUES (1, 50.00, 'unpaid')`
   );
   console.log('  • inserted 1 demo invoice');
 
   console.log('✓ Seed complete.');
-  await adminPool.end();
 }
 
 run().catch((err) => {

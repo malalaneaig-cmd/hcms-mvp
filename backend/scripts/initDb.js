@@ -12,7 +12,12 @@ const adminPool = new Pool(buildPoolConfig());
 
 async function runSqlFile(label, filePath) {
   let sql = await readFile(filePath, 'utf8');
-  const dbName = process.env.PGDATABASE || 'hcms';
+  let dbName = process.env.PGDATABASE || 'hcms';
+  if (process.env.DATABASE_URL) {
+    try {
+      dbName = new URL(process.env.DATABASE_URL).pathname.replace(/^\//, '') || dbName;
+    } catch { /* keep PGDATABASE / default */ }
+  }
   if (label.includes('security')) {
     sql = sql.replace(
       'GRANT CONNECT ON DATABASE hcms TO hcms_app;',
