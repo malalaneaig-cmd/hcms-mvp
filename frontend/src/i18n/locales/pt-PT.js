@@ -318,7 +318,8 @@ export default {
     reference: 'Referência',
     bookAnother: 'Marcar outra',
     dateWindowHint: 'Pode marcar até {days} dias à frente.',
-    dateFormatHint: 'Formato: dd/mm/aaaa (ex.: 11/10/2026 = 11 de outubro). Use o calendário para evitar erros.',
+    dateFormatHint: 'Ex.: 11/10/2026 = 11 de outubro',
+    dateInvalid: 'Data inválida ou fora do período permitido. Use dd/mm/aaaa.',
   },
 
   slotPicker: {

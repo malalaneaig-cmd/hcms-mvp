@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Doctors, Appointments } from '../services/api.js';
 import SlotPicker from '../components/SlotPicker.jsx';
+import LocaleDateInput from '../components/LocaleDateInput.jsx';
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { useFormatDate } from '../i18n/useFormatDate.js';
@@ -140,17 +141,15 @@ export default function PublicBookingPage() {
 
           <div>
             <label className="label">{t('booking.date')}</label>
-            <input
-              type="date"
-              className="input"
+            <LocaleDateInput
               value={form.date}
               min={minDate}
               max={maxDate}
-              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value, time: '' }))}
               required
+              onChange={(iso) => setForm((f) => ({ ...f, date: iso, time: '' }))}
             />
             <p className="text-xs text-slate-500 mt-1">{t('booking.dateWindowHint', { days: maxDays })}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{t('booking.dateFormatHint')}</p>
+            <p className="text-xs text-slate-600 mt-0.5">{t('booking.dateFormatHint')}</p>
           </div>
 
           <div>
