@@ -318,6 +318,7 @@ export default {
     reference: 'Reference',
     bookAnother: 'Book another',
     dateWindowHint: 'You can book up to {days} days ahead.',
+    dateFormatHint: 'Format: mm/dd/yyyy (e.g. 10/11/2026 = November 10). Use the calendar picker to avoid mistakes.',
   },
 
   slotPicker: {

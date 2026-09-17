@@ -79,7 +79,6 @@ export default function PublicBookingPage() {
           <button className="btn-primary w-full mt-6" onClick={() => { setSuccess(null); setForm({ patient_name: '', patient_phone: '', patient_email: '', doctor_id: '', date: '', time: '' }); }}>
             {t('booking.bookAnother')}
           </button>
-          <Link to="/login" className="block text-xs text-slate-500 mt-4 hover:underline">{t('booking.staffLoginArrow')}</Link>
         </div>
       </div>
     );
@@ -151,6 +150,7 @@ export default function PublicBookingPage() {
               required
             />
             <p className="text-xs text-slate-500 mt-1">{t('booking.dateWindowHint', { days: maxDays })}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{t('booking.dateFormatHint')}</p>
           </div>
 
           <div>
